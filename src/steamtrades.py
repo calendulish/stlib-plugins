@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see http://www.gnu.org/licenses/.
 #
-
+import contextlib
 import json
 import os
 from typing import Any, Dict, NamedTuple, Optional
@@ -57,6 +57,8 @@ class Main(webapi.SteamWebAPI):
             session: aiohttp.ClientSession,
             server: str = 'https://www.steamtrades.com',
             bump_script: str = 'ajax.php',
+            login_page: str = 'https://steamtrades.com/?login',
+            openid_url: str = 'https://steamcommunity.com/openid',
             headers: Optional[Dict[str, str]] = None,
             *args: Any,
             **kwargs: Any,
@@ -66,11 +68,34 @@ class Main(webapi.SteamWebAPI):
         self.session = session
         self.server = server
         self.bump_script = bump_script
+        self.login_page = login_page
+        self.openid_url = openid_url
 
         if not headers:
             headers = {'User-Agent': 'Unknown/0.0.0'}
 
         self.headers = headers
+
+    async def do_login(self) -> Dict[str, Any]:
+        async with self.session.get(self.login_page, headers=self.headers) as response:
+            form = BeautifulSoup(await response.text(), 'html.parser').find('form')
+            data = {}
+
+            for input_ in form.findAll('input'):
+                with contextlib.suppress(KeyError):
+                    data[input_['name']] = input_['value']
+
+        async with self.session.post(f'{self.openid_url}/login', headers=self.headers, data=data) as response:
+            avatar = BeautifulSoup(await response.text(), 'html.parser').find('a', class_='nav_avatar')
+
+            if avatar:
+                json_data = {'success': True, 'steamid': avatar['href'].split('/')[2]}
+            else:
+                raise webapi.LoginError('Unable to log-in on steamtrades')
+
+            json_data.update(data)
+
+            return json_data
 
     async def get_trade_info(self, trade_id: str) -> TradeInfo:
         async with self.session.get(f'{self.server}/trade/{trade_id}/', headers=self.headers) as response:
