@@ -103,6 +103,9 @@ class Main:
             giveaways_raw += pinned.findAll('div', class_='giveaway__row-outer-wrap')
 
         for giveaway in giveaways_raw:
+            if giveaway.find('div', class_='is-faded'):
+                continue
+
             temp_head = giveaway.find('a', class_='giveaway__heading__name')
             name = temp_head.text
             query = temp_head['href']
