@@ -33,5 +33,8 @@ setup(
     setup_requires=['setuptools'],
     install_requires=['stlib>=0.6'],
     zip_safe=True,
-    entry_points={'stlib_plugins': ['steamtrades = stlib_plugins.steamtrades']},
+    entry_points={'stlib_plugins': [
+        'steamtrades = stlib_plugins.steamtrades',
+        'steamgifts = stlib_plugins.steamgifts',
+    ]},
 )
