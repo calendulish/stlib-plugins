@@ -20,7 +20,7 @@ from setuptools import setup
 
 setup(
     name='stlib-plugins',
-    version='0.0.0',
+    version='0.1.0',
     description='Official plugins for stlib',
     author='Lara Maia',
     author_email='dev@lara.click',
