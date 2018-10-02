@@ -17,10 +17,11 @@
 #
 
 import contextlib
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Dict, Any, Optional
 
 import aiohttp
 import bs4
+from stlib import webapi
 
 
 class UserInfo(NamedTuple):
@@ -42,20 +43,55 @@ class GiveawayType(NamedTuple):
     main = ''
 
 
-class Main:
+class Main(webapi.SteamWebAPI):
     def __init__(
             self,
             session: aiohttp.ClientSession,
             server: str = 'https://www.steamgifts.com',
             join_script: str = 'ajax.php',
             search_page: str = 'https://www.steamgifts.com/giveaways/search',
-            config_page: str = 'https://www.steamgifts.com/account/settings/giveaways'
+            config_page: str = 'https://www.steamgifts.com/account/settings/giveaways',
+            login_page: str = 'https://steamgifts.com/?login',
+            openid_url: str = 'https://steamcommunity.com/openid',
+            headers: Optional[Dict[str, str]] = None,
+            *args: Any,
+            **kwargs: Any,
     ) -> None:
+        super().__init__(session, *args, **kwargs)
+
         self.session = session
         self.server = server
         self.join_script = join_script
         self.search_page = search_page
         self.config_page = config_page
+        self.login_page = login_page
+        self.openid_url = openid_url
+
+        if not headers:
+            headers = {'User-Agent': 'Unknown/0.0.0'}
+
+        self.headers = headers
+
+    async def do_login(self) -> Dict[str, Any]:
+        async with self.session.get(self.login_page, headers=self.headers) as response:
+            form = bs4.BeautifulSoup(await response.text(), 'html.parser').find('form')
+            data = {}
+
+            for input_ in form.findAll('input'):
+                with contextlib.suppress(KeyError):
+                    data[input_['name']] = input_['value']
+
+        async with self.session.post(f'{self.openid_url}/login', headers=self.headers, data=data) as response:
+            avatar = bs4.BeautifulSoup(await response.text(), 'html.parser').find('a', class_='nav_avatar')
+
+            if avatar:
+                json_data = {'success': True, 'steamid': avatar['href'].split('/')[2]}
+            else:
+                raise webapi.LoginError('Unable to log-in on steamgifts')
+
+            json_data.update(data)
+
+            return json_data
 
     async def configure(self) -> None:
         async with self.session.get(self.config_page) as response:
