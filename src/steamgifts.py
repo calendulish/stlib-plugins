@@ -74,8 +74,13 @@ class Main(webapi.SteamWebAPI):
 
     async def do_login(self) -> Dict[str, Any]:
         async with self.session.get(self.login_page, headers=self.headers) as response:
-            form = bs4.BeautifulSoup(await response.text(), 'html.parser').find('form')
+            html = bs4.BeautifulSoup(await response.text(), 'html.parser')
+            form = html.find('form')
             data = {}
+
+            if not form:
+                if 'Suspensions' in html.find('a', class_='nav__button'):
+                    raise webapi.LoginError('Unable to login, user is suspended.')
 
             for input_ in form.findAll('input'):
                 with contextlib.suppress(KeyError):
