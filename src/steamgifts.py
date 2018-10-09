@@ -134,8 +134,10 @@ class Main(webapi.SteamWebAPI):
 
         return UserInfo(int(points.text), int(''.join(filter(str.isdigit, level))))
 
-    async def get_giveaways(self, giveaway_type: GiveawayType) -> List[GiveawayInfo]:
-        async with self.session.get(f'{self.search_page}{giveaway_type}') as response:
+    async def get_giveaways(self, giveaway_type: str) -> List[GiveawayInfo]:
+        search_query = getattr(GiveawayType, giveaway_type)
+
+        async with self.session.get(f'{self.search_page}{search_query}') as response:
             html = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
         container = html.find('div', class_='widget-container')
