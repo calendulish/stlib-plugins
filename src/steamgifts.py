@@ -132,7 +132,7 @@ class Main(webapi.SteamWebAPI):
         points = html.find('span', class_="nav__points")
         level = html.find('span', class_=None)
 
-        return UserInfo(int(points.text), int(''.join(filter(str.isdigit, level))))
+        return UserInfo(int(points.text), int(''.join(filter(str.isdigit, level.text))))
 
     async def get_giveaways(self, giveaway_type: str) -> List[GiveawayInfo]:
         search_query = getattr(GiveawayType, giveaway_type)
