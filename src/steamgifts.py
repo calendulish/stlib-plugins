@@ -87,10 +87,10 @@ class Main(webapi.SteamWebAPI):
                     data[input_['name']] = input_['value']
 
         async with self.session.post(f'{self.openid_url}/login', headers=self.headers, data=data) as response:
-            avatar = bs4.BeautifulSoup(await response.text(), 'html.parser').find('a', class_='nav_avatar')
+            avatar = bs4.BeautifulSoup(await response.text(), 'html.parser').find('a', class_='nav__avatar-outer-wrap')
 
             if avatar:
-                json_data = {'success': True, 'steamid': avatar['href'].split('/')[2]}
+                json_data = {'success': True, 'nickname': avatar['href'].split('/')[2]}
             else:
                 raise webapi.LoginError('Unable to log-in on steamgifts')
 
