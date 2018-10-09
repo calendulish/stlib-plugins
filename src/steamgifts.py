@@ -35,6 +35,7 @@ class GiveawayInfo(NamedTuple):
     points: int
     level: int
     query: str
+    id: str
 
 
 class GiveawayType(NamedTuple):
@@ -156,6 +157,7 @@ class Main(webapi.SteamWebAPI):
             temp_head = giveaway.find('a', class_='giveaway__heading__name')
             name = temp_head.text
             query = temp_head['href']
+            id = temp_head['href'].split('/')[2]
 
             temp_head = giveaway.find('span', class_='giveaway__heading__thin')
 
@@ -173,7 +175,7 @@ class Main(webapi.SteamWebAPI):
             except AttributeError:
                 level = 0
 
-            giveaways.append(GiveawayInfo(name, copies, points, level, query))
+            giveaways.append(GiveawayInfo(name, copies, points, level, query, id))
 
         return giveaways
 
