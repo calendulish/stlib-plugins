@@ -43,6 +43,9 @@ class GiveawayType(NamedTuple):
     main = ''
 
 
+class ConfigureError(Exception): pass
+
+
 class Main(webapi.SteamWebAPI):
     def __init__(
             self,
@@ -116,10 +119,11 @@ class Main(webapi.SteamWebAPI):
             'filter_giveaways_level': 1
         }
 
-        async with self.session.post(self.config_page, data=post_data) as response:
-            print(response.cookies)
-            print(await response.text())
-            print(response.status)
+        try:
+            # if status != 200, session will raise an exception
+            await self.session.post(self.config_page, data=post_data)
+        except aiohttp.ClientResponseError:
+            raise ConfigureError from None
 
     async def get_user_info(self) -> UserInfo:
         async with self.session.get(self.server) as response:
