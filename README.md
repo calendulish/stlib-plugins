@@ -4,35 +4,49 @@ Official stlib plugins
 Current plugins:
 
  - SteamTrades
+ - SteamGifts
 
 How to Create Plugins
 =====================
 
 You can use stlib-plugin as an example.
 
-1) You just need a "stlib_plugins" entry point in your setup.py with your plugin name. E.g.:
-   
-   ```
-   entry_points={
-       'stlib_plugins': [
-           'your_plugin_name = your_module',
-           ...
-       ]
-   },
-   ```
+1) Create all files needed by your plugin as a common python module, and you're done.
 
-2) Create all files needed by your plugin as a common python module, and you're done.
+2) You can specify the search path when initializing plugin manager. Default search paths are:
+
+#####For Windows:
+```
+<current_directory>\\plugins  
+%LOCALAPPDATA%\\stlib\\plugins
+``` 
+
+#####For Linux:
+```
+<current_directory>/plugins  
+/usr/share/stlib/plugins  
+$HOME/.local/share/stlib/plugins
+``` 
 
 How to Use Plugins
 ==================
 
-1) stlib will automatically finds and integrates all installed plugins
-2) You can use `get_plugin(<name>)` to get a plugin by name. E.g.:
-
    ```
    from stlib import plugins
    
-   steamtrades = plugins.get_plugin("steamtrades")
+   # Check registered plugins
+   print(manager.available_plugins)
+   
+   # Check if manager has a plugin called <plugin_name>
+   if manager.has_plugin(<plugin_name>):
+       # Load a plugin by plugin name
+       plugin = plugins.load_plugin(<plugin_name>)
+   
+   # Check loaded plugins
+   print(manager.loaded_plugins)
+   
+   # unload a plugin by plugin name
+   plugins.unload_plugin(<plugin_name>)
    ``` 
 
 
