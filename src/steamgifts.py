@@ -39,9 +39,9 @@ class GiveawayInfo(NamedTuple):
 
 
 class GiveawayType(NamedTuple):
-    wishlist = '&q=wishlist'
-    new = '&?q=new'
-    main = ''
+    wishlist: str = '&q=wishlist'
+    new: str = '&?q=new'
+    main: str = ''
 
 
 class ConfigureError(Exception): pass
