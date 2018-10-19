@@ -107,7 +107,7 @@ class Main(webapi.SteamWebAPI):
             return json_data
 
     async def configure(self) -> None:
-        async with self.session.get(self.config_page) as response:
+        async with self.session.get(self.config_page, headers=self.headers) as response:
             html = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
         form = html.find('form')
@@ -126,7 +126,7 @@ class Main(webapi.SteamWebAPI):
 
         try:
             # if status != 200, session will raise an exception
-            await self.session.post(self.config_page, data=post_data)
+            await self.session.post(self.config_page, data=post_data, headers=self.headers)
         except aiohttp.ClientResponseError:
             raise ConfigureError from None
 
@@ -136,7 +136,7 @@ class Main(webapi.SteamWebAPI):
         else:
             search_query = f"?type={giveaway_type}"
 
-        async with self.session.get(f'{self.search_page}{search_query}') as response:
+        async with self.session.get(f'{self.search_page}{search_query}', headers=self.headers) as response:
             html = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
         user_points = html.find('span', class_="nav__points")
@@ -188,7 +188,7 @@ class Main(webapi.SteamWebAPI):
         if self.user_info.level < giveaway.level or self.user_info.points < giveaway.points:
             raise AttributeError(f"User don't have all the requirements to join {giveaway.id}")
 
-        async with self.session.get(f'{self.server}{giveaway.query}') as response:
+        async with self.session.get(f'{self.server}{giveaway.query}', headers=self.headers) as response:
             soup = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
         if not soup.find('a', class_='nav__avatar-outer-wrap'):
