@@ -17,11 +17,14 @@
 #
 
 import contextlib
+import logging
 from typing import NamedTuple, List, Dict, Any, Optional
 
 import aiohttp
 import bs4
 from stlib import webapi
+
+log = logging.getLogger(__name__)
 
 
 class UserInfo(NamedTuple):
@@ -70,6 +73,7 @@ class Main(webapi.SteamWebAPI):
         self.config_page = config_page
         self.login_page = login_page
         self.openid_url = openid_url
+        self.user_info = UserInfo(0, 0)
 
         if not headers:
             headers = {'User-Agent': 'Unknown/0.0.0'}
@@ -126,16 +130,7 @@ class Main(webapi.SteamWebAPI):
         except aiohttp.ClientResponseError:
             raise ConfigureError from None
 
-    async def get_user_info(self) -> UserInfo:
-        async with self.session.get(self.server) as response:
-            html = bs4.BeautifulSoup(await response.text(), 'html.parser')
-
-        points = html.find('span', class_="nav__points")
-        level = html.find('span', class_=None)
-
-        return UserInfo(int(points.text), int(''.join(filter(str.isdigit, level.text))))
-
-    async def get_giveaways(self, giveaway_type: str) -> List[GiveawayInfo]:
+    async def get_giveaways(self, giveaway_type: str, return_unavailable: bool = False) -> List[GiveawayInfo]:
         if giveaway_type == "main":
             search_query = ''
         else:
@@ -143,6 +138,10 @@ class Main(webapi.SteamWebAPI):
 
         async with self.session.get(f'{self.search_page}{search_query}') as response:
             html = bs4.BeautifulSoup(await response.text(), 'html.parser')
+
+        user_points = html.find('span', class_="nav__points")
+        user_level = html.find('span', class_=None)
+        self.user_info = UserInfo(int(user_points.text), int(''.join(filter(str.isdigit, user_level.text))))
 
         container = html.find('div', class_='widget-container')
         head = container.find('div', class_='page__heading')
@@ -160,7 +159,7 @@ class Main(webapi.SteamWebAPI):
             temp_head = giveaway.find('a', class_='giveaway__heading__name')
             name = temp_head.text
             query = temp_head['href']
-            id = temp_head['href'].split('/')[2]
+            id_ = temp_head['href'].split('/')[2]
 
             temp_head = giveaway.find('span', class_='giveaway__heading__thin')
 
@@ -178,11 +177,17 @@ class Main(webapi.SteamWebAPI):
             except AttributeError:
                 level = 0
 
-            giveaways.append(GiveawayInfo(name, copies, points, level, query, id))
+            if not return_unavailable and (user_level < level or user_points < points):
+                log.warning("Ignoring %s because user don't have all the requirements to join.", id_)
+            else:
+                giveaways.append(GiveawayInfo(name, copies, points, level, query, id_))
 
         return giveaways
 
     async def join(self, giveaway: GiveawayInfo) -> bool:
+        if self.user_info.level < giveaway.level or self.user_info.points < giveaway.points:
+            raise AttributeError(f"User don't have all the requirements to join {giveaway.id}")
+
         async with self.session.get(f'{self.server}{giveaway.query}') as response:
             soup = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
