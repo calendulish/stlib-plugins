@@ -176,7 +176,7 @@ class Main(webapi.SteamWebAPI):
 
         return giveaways
 
-    async def join(self, giveaway: GiveawayInfo) -> None:
+    async def join(self, giveaway: GiveawayInfo) -> bool:
         async with self.session.get(f'{self.server}{giveaway.query}') as response:
             html = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
@@ -188,7 +188,8 @@ class Main(webapi.SteamWebAPI):
             with contextlib.suppress(KeyError):
                 data[input_['name']] = input_['value']
 
-        # FIXME: ! has data? so return
+        if not data:
+            raise AttributeError(f"Unable to find secure giveaway data for {giveaway.id}")
 
         post_data = {
             'xsrf_token': data['xsrf_token'],
@@ -196,4 +197,12 @@ class Main(webapi.SteamWebAPI):
             'code': data['code'],
         }
 
-        await self.session.get(f'{self.server}/{self.join_script}')
+        async with self.session.post(
+                f'{self.server}/{self.join_script}',
+                data=post_data,
+                headers=self.headers,
+        ) as response:
+            if 'success' in await response.text():
+                return True
+            else:
+                return False
