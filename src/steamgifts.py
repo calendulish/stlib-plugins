@@ -50,6 +50,12 @@ class GiveawayEndedError(Exception): pass
 class NoGiveawaysError(Exception): pass
 
 
+class NoPointsError(Exception): pass
+
+
+class NoLevelError(Exception): pass
+
+
 class Main(webapi.SteamWebAPI):
     def __init__(
             self,
@@ -139,9 +145,9 @@ class Main(webapi.SteamWebAPI):
         async with self.session.get(f'{self.search_page}{search_query}', headers=self.headers) as response:
             html = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
-        user_points = html.find('span', class_="nav__points")
-        user_level = html.find('span', class_=None)
-        self.user_info = UserInfo(int(user_points.text), int(''.join(filter(str.isdigit, user_level.text))))
+        user_points = int(html.find('span', class_="nav__points").text)
+        user_level = int(''.join(filter(str.isdigit, html.find('span', class_=None).text)))
+        self.user_info = UserInfo(user_points, user_level)
 
         container = html.find('div', class_='widget-container')
         head = container.find('div', class_='page__heading')
@@ -185,8 +191,11 @@ class Main(webapi.SteamWebAPI):
         return giveaways
 
     async def join(self, giveaway: GiveawayInfo) -> bool:
-        if self.user_info.level < giveaway.level or self.user_info.points < giveaway.points:
-            raise AttributeError(f"User don't have all the requirements to join {giveaway.id}")
+        if self.user_info.level < giveaway.level:
+            raise NoLevelError(f"User don't have required level to join {giveaway.id}")
+
+        if self.user_info.points < giveaway.points:
+            raise NoPointsError(f"User don't have required points to join {giveaway.id}")
 
         async with self.session.get(f'{self.server}{giveaway.query}', headers=self.headers) as response:
             soup = bs4.BeautifulSoup(await response.text(), 'html.parser')
@@ -198,7 +207,7 @@ class Main(webapi.SteamWebAPI):
         form = sidebar.find('form')
 
         if not form:
-            raise GiveawayEndedError("Giveaway is already ended.")
+            raise GiveawayEndedError(f"Giveaway {giveaway.id} is already ended.")
 
         data = {}
 
@@ -221,6 +230,8 @@ class Main(webapi.SteamWebAPI):
                 headers=self.headers,
         ) as response:
             if 'success' in await response.text():
+                # noinspection PyProtectedMember
+                self.user_info = self.user_info._replace(points=self.user_info.points - giveaway.points)
                 return True
             else:
                 return False
