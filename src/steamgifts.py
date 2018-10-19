@@ -38,12 +38,6 @@ class GiveawayInfo(NamedTuple):
     id: str
 
 
-class GiveawayType(NamedTuple):
-    wishlist: str = '&q=wishlist'
-    new: str = '&?q=new'
-    main: str = ''
-
-
 class ConfigureError(Exception): pass
 
 
@@ -136,7 +130,10 @@ class Main(webapi.SteamWebAPI):
         return UserInfo(int(points.text), int(''.join(filter(str.isdigit, level.text))))
 
     async def get_giveaways(self, giveaway_type: str) -> List[GiveawayInfo]:
-        search_query = getattr(GiveawayType, giveaway_type)
+        if giveaway_type == "main":
+            search_query = ''
+        else:
+            search_query = f"?type={giveaway_type}"
 
         async with self.session.get(f'{self.search_page}{search_query}') as response:
             html = bs4.BeautifulSoup(await response.text(), 'html.parser')
