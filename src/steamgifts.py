@@ -136,7 +136,12 @@ class Main(webapi.SteamWebAPI):
         except aiohttp.ClientResponseError:
             raise ConfigureError from None
 
-    async def get_giveaways(self, giveaway_type: str, return_unavailable: bool = False) -> List[GiveawayInfo]:
+    async def get_giveaways(
+            self,
+            giveaway_type: str,
+            return_unavailable: bool = False,
+            pinned_giveaways: bool = True,
+    ) -> List[GiveawayInfo]:
         if giveaway_type == "main":
             search_query = ''
         else:
@@ -154,9 +159,10 @@ class Main(webapi.SteamWebAPI):
         giveaways_raw = head.findAllNext('div', class_='giveaway__row-outer-wrap')
         giveaways = []
 
-        with contextlib.suppress(AttributeError):
-            pinned = container.find('div', class_='pinned-giveaways__outer-wrap')
-            giveaways_raw += pinned.findAll('div', class_='giveaway__row-outer-wrap')
+        if pinned_giveaways:
+            with contextlib.suppress(AttributeError):
+                pinned = container.find('div', class_='pinned-giveaways__outer-wrap')
+                giveaways_raw += pinned.findAll('div', class_='giveaway__row-outer-wrap')
 
         for giveaway in giveaways_raw:
             if giveaway.find('div', class_='is-faded'):
