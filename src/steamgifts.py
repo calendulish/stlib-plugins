@@ -41,6 +41,12 @@ class GiveawayInfo(NamedTuple):
 class ConfigureError(Exception): pass
 
 
+class GiveawayEndedError(Exception): pass
+
+
+class NoGiveawaysError(Exception): pass
+
+
 class Main(webapi.SteamWebAPI):
     def __init__(
             self,
@@ -178,18 +184,25 @@ class Main(webapi.SteamWebAPI):
 
     async def join(self, giveaway: GiveawayInfo) -> bool:
         async with self.session.get(f'{self.server}{giveaway.query}') as response:
-            html = bs4.BeautifulSoup(await response.text(), 'html.parser')
+            soup = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
-        sidebar = html.find('div', class_='sidebar')
+        if not soup.find('a', class_='nav__avatar-outer-wrap'):
+            raise webapi.LoginError("User is not logged in")
+
+        sidebar = soup.find('div', class_='sidebar')
         form = sidebar.find('form')
+
+        if not form:
+            raise GiveawayEndedError("Giveaway is already ended.")
+
         data = {}
 
-        for input_ in form.findAll('input'):
-            with contextlib.suppress(KeyError):
-                data[input_['name']] = input_['value']
-
-        if not data:
-            raise AttributeError(f"Unable to find secure giveaway data for {giveaway.id}")
+        try:
+            for input_ in form.findAll('input'):
+                with contextlib.suppress(KeyError):
+                    data[input_['name']] = input_['value']
+        except AttributeError:
+            raise NoGiveawaysError("No giveaways available to join.")
 
         post_data = {
             'xsrf_token': data['xsrf_token'],
