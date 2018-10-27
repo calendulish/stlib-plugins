@@ -17,9 +17,10 @@
 
 CC := /usr/bin/gcc
 PYTHON := /usr/bin/env python
-CP := /usr/bin/cp
+INSTALL := /usr/bin/install
 RM := /usr/bin/rm
-DEST := /usr/share/stlib/plugins
+PREFIX := /usr/local
+DATADIR := $(PREFIX)/share
 
 ifeq ($(OS),Windows_NT)
 	current_os := windows
@@ -44,8 +45,8 @@ ifeq ($(current_os),windows)
 	@exit 1
 endif
 
-	$(CP) -f src/__pycache__/steamtrades* $(DEST)/steamtrades.pyc
-	$(CP) -f src/__pycache__/steamgifts* $(DEST)/steamgifts.pyc
+	$(INSTALL) -Dm644 src/__pycache__/steamtrades* $(DESTDIR)$(DATADIR)/stlib/plugins/steamtrades.pyc
+	$(INSTALL) -Dm644 src/__pycache__/steamgifts* $(DESTDIR)$(DATADIR)/stlib/plugins/steamgifts.pyc
 
 clean:
 	$(RM) -rf src/__pycache__
