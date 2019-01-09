@@ -100,7 +100,7 @@ class Main(webapi.SteamWebAPI):
     async def get_trade_info(self, trade_id: str) -> TradeInfo:
         async with self.session.get(f'{self.server}/trade/{trade_id}/', headers=self.headers) as response:
             id = response.url.path.split('/')[2]
-            title = os.path.basename(response.url.path).replace('-', ' ')
+            title = os.path.basename(response.url.path).replace('-', ' ')[:22] + '...'
             html = await response.text()
             return TradeInfo(id, title, html)
 

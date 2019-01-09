@@ -169,7 +169,7 @@ class Main(webapi.SteamWebAPI):
                 continue
 
             temp_head = giveaway.find('a', class_='giveaway__heading__name')
-            name = temp_head.text
+            name = temp_head.text[:22] + '...'
             query = temp_head['href']
             id_ = temp_head['href'].split('/')[2]
 
