@@ -36,7 +36,7 @@ endif
 
 all: build
 
-build:
+build: clean
 	$(PYTHON) -m compileall src/
 
 install: build
