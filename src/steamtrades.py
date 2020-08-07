@@ -20,9 +20,8 @@ import json
 import os
 from typing import Any, Dict, NamedTuple, Optional
 
-import aiohttp
 from bs4 import BeautifulSoup
-from stlib import webapi
+from stlib import plugins, login
 
 
 class TradeInfo(NamedTuple):
@@ -51,33 +50,23 @@ class TradeNotReadyError(Exception):
 class NoTradesError(Exception): pass
 
 
-class Main(webapi.SteamWebAPI):
+class SteamTrades(plugins.Plugin):
     def __init__(
             self,
-            session: aiohttp.ClientSession,
             server: str = 'https://www.steamtrades.com',
             bump_script: str = 'ajax.php',
             login_page: str = 'https://steamtrades.com/?login',
             openid_url: str = 'https://steamcommunity.com/openid',
             headers: Optional[Dict[str, str]] = None,
-            *args: Any,
-            **kwargs: Any,
     ) -> None:
-        super().__init__(session, *args, **kwargs)
-
-        self.session = session
+        super().__init__(headers)
         self.server = server
         self.bump_script = bump_script
         self.login_page = login_page
         self.openid_url = openid_url
 
-        if not headers:
-            headers = {'User-Agent': 'Unknown/0.0.0'}
-
-        self.headers = headers
-
     async def do_login(self) -> Dict[str, Any]:
-        async with self.session.get(self.login_page, headers=self.headers) as response:
+        async with self.session.http.get(self.login_page, headers=self.headers) as response:
             form = BeautifulSoup(await response.text(), 'html.parser').find('form')
             data = {}
 
@@ -85,30 +74,30 @@ class Main(webapi.SteamWebAPI):
                 with contextlib.suppress(KeyError):
                     data[input_['name']] = input_['value']
 
-        async with self.session.post(f'{self.openid_url}/login', headers=self.headers, data=data) as response:
+        async with self.session.http.post(f'{self.openid_url}/login', headers=self.headers, data=data) as response:
             avatar = BeautifulSoup(await response.text(), 'html.parser').find('a', class_='nav_avatar')
 
             if avatar:
                 json_data = {'success': True, 'steamid': avatar['href'].split('/')[2]}
             else:
-                raise webapi.LoginError('Unable to log-in on steamtrades')
+                raise login.LoginError('Unable to log-in on steamtrades')
 
             json_data.update(data)
 
             return json_data
 
     async def get_trade_info(self, trade_id: str) -> TradeInfo:
-        async with self.session.get(f'{self.server}/trade/{trade_id}/', headers=self.headers) as response:
-            id = response.url.path.split('/')[2]
+        async with self.session.http.get(f'{self.server}/trade/{trade_id}/', headers=self.headers) as response:
+            id_ = response.url.path.split('/')[2]
             title = os.path.basename(response.url.path).replace('-', ' ')[:22] + '...'
             html = await response.text()
-            return TradeInfo(id, title, html)
+            return TradeInfo(id_, title, html)
 
     async def bump(self, trade_info: TradeInfo) -> bool:
         soup = BeautifulSoup(trade_info.html, 'html.parser')
 
         if not soup.find('a', class_='nav_avatar'):
-            raise webapi.LoginError("User is not logged in")
+            raise login.LoginError("User is not logged in")
 
         if soup.find('div', class_='js_trade_open'):
             raise TradeClosedError(trade_info, f"Trade {trade_info.id} is closed")
@@ -128,7 +117,7 @@ class Main(webapi.SteamWebAPI):
             'do': 'trade_bump',
         }
 
-        async with self.session.post(
+        async with self.session.http.post(
                 f'{self.server}/{self.bump_script}',
                 data=payload,
                 headers=self.headers,
@@ -139,8 +128,8 @@ class Main(webapi.SteamWebAPI):
                 minutes_left = int(error.split(' ')[3])
                 raise TradeNotReadyError(trade_info, minutes_left, f"Trade {trade_info.id} is not ready")
             else:
-                async with self.session.post(f'{self.server}/trades', headers=self.headers) as response:
-                    text = await response.text()
+                async with self.session.http.post(f'{self.server}/trades', headers=self.headers) as result:
+                    text = await result.text()
 
                 if trade_info.id in text:
                     return True

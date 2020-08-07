@@ -22,7 +22,7 @@ from typing import NamedTuple, List, Dict, Any, Optional
 
 import aiohttp
 import bs4
-from stlib import webapi
+from stlib import webapi, plugins, login
 
 log = logging.getLogger(__name__)
 
@@ -56,10 +56,9 @@ class NoPointsError(Exception): pass
 class NoLevelError(Exception): pass
 
 
-class Main(webapi.SteamWebAPI):
+class SteamGifts(plugins.Plugin):
     def __init__(
             self,
-            session: aiohttp.ClientSession,
             server: str = 'https://www.steamgifts.com',
             join_script: str = 'ajax.php',
             search_page: str = 'https://www.steamgifts.com/giveaways/search',
@@ -67,12 +66,8 @@ class Main(webapi.SteamWebAPI):
             login_page: str = 'https://steamgifts.com/?login',
             openid_url: str = 'https://steamcommunity.com/openid',
             headers: Optional[Dict[str, str]] = None,
-            *args: Any,
-            **kwargs: Any,
     ) -> None:
-        super().__init__(session, *args, **kwargs)
-
-        self.session = session
+        super().__init__(headers)
         self.server = server
         self.join_script = join_script
         self.search_page = search_page
@@ -81,39 +76,34 @@ class Main(webapi.SteamWebAPI):
         self.openid_url = openid_url
         self.user_info = UserInfo(0, 0)
 
-        if not headers:
-            headers = {'User-Agent': 'Unknown/0.0.0'}
-
-        self.headers = headers
-
     async def do_login(self) -> Dict[str, Any]:
-        async with self.session.get(self.login_page, headers=self.headers) as response:
+        async with self.session.http.get(self.login_page, headers=self.headers) as response:
             html = bs4.BeautifulSoup(await response.text(), 'html.parser')
             form = html.find('form')
             data = {}
 
             if not form:
                 if 'Suspensions' in html.find('a', class_='nav__button'):
-                    raise webapi.LoginError('Unable to login, user is suspended.')
+                    raise login.LoginError('Unable to login, user is suspended.')
 
             for input_ in form.findAll('input'):
                 with contextlib.suppress(KeyError):
                     data[input_['name']] = input_['value']
 
-        async with self.session.post(f'{self.openid_url}/login', headers=self.headers, data=data) as response:
+        async with self.session.http.post(f'{self.openid_url}/login', headers=self.headers, data=data) as response:
             avatar = bs4.BeautifulSoup(await response.text(), 'html.parser').find('a', class_='nav__avatar-outer-wrap')
 
             if avatar:
                 json_data = {'success': True, 'nickname': avatar['href'].split('/')[2]}
             else:
-                raise webapi.LoginError('Unable to log-in on steamgifts')
+                raise login.LoginError('Unable to log-in on steamgifts')
 
             json_data.update(data)
 
             return json_data
 
     async def configure(self) -> None:
-        async with self.session.get(self.config_page, headers=self.headers) as response:
+        async with self.session.http.get(self.config_page, headers=self.headers) as response:
             html = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
         form = html.find('form')
@@ -132,7 +122,7 @@ class Main(webapi.SteamWebAPI):
 
         try:
             # if status != 200, session will raise an exception
-            await self.session.post(self.config_page, data=post_data, headers=self.headers)
+            await self.session.http.post(self.config_page, data=post_data, headers=self.headers)
         except aiohttp.ClientResponseError:
             raise ConfigureError from None
 
@@ -147,7 +137,7 @@ class Main(webapi.SteamWebAPI):
         else:
             search_query = f"?type={giveaway_type}"
 
-        async with self.session.get(f'{self.search_page}{search_query}', headers=self.headers) as response:
+        async with self.session.http.get(f'{self.search_page}{search_query}', headers=self.headers) as response:
             html = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
         user_points = int(html.find('span', class_="nav__points").text)
@@ -203,11 +193,11 @@ class Main(webapi.SteamWebAPI):
         if self.user_info.points < giveaway.points:
             raise NoPointsError(f"User don't have required points to join {giveaway.id}")
 
-        async with self.session.get(f'{self.server}{giveaway.query}', headers=self.headers) as response:
+        async with self.session.http.get(f'{self.server}{giveaway.query}', headers=self.headers) as response:
             soup = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
         if not soup.find('a', class_='nav__avatar-outer-wrap'):
-            raise webapi.LoginError("User is not logged in")
+            raise login.LoginError("User is not logged in")
 
         sidebar = soup.find('div', class_='sidebar')
         form = sidebar.find('form')
@@ -230,7 +220,7 @@ class Main(webapi.SteamWebAPI):
             'code': data['code'],
         }
 
-        async with self.session.post(
+        async with self.session.http.post(
                 f'{self.server}/{self.join_script}',
                 data=post_data,
                 headers=self.headers,
