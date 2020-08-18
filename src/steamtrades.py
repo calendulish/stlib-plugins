@@ -50,6 +50,15 @@ class TradeNotReadyError(Exception):
 class NoTradesError(Exception): pass
 
 
+class UserSuspended(Exception): pass
+
+
+class TooFast(Exception): pass
+
+
+class PrivateProfile(Exception): pass
+
+
 class SteamTrades(plugins.Plugin):
     def __init__(
             self,
@@ -67,19 +76,36 @@ class SteamTrades(plugins.Plugin):
 
     async def do_login(self) -> Dict[str, Any]:
         async with self.session.http.get(self.login_page, headers=self.headers) as response:
-            form = BeautifulSoup(await response.text(), 'html.parser').find('form')
+            html = BeautifulSoup(await response.text(), 'html.parser')
+            form = html.find('form')
             data = {}
+
+            if not form:
+                if 'Suspensions' in html.find('a', class_='nav__button'):
+                    raise UserSuspended('Unable to login, user is suspended.')
+
+                if 'Please wait' in html.find('div', class_='notification--warning').text:
+                    raise TooFast('Wait 15 seconds before try again.')
+
+                if 'public Steam profile' in html.find('div', class_='notification--warning').text:
+                    raise PrivateProfile('Your profile must be public to use steamtrades.')
 
             for input_ in form.findAll('input'):
                 with contextlib.suppress(KeyError):
                     data[input_['name']] = input_['value']
 
         async with self.session.http.post(f'{self.openid_url}/login', headers=self.headers, data=data) as response:
-            avatar = BeautifulSoup(await response.text(), 'html.parser').find('a', class_='nav_avatar')
+            html = BeautifulSoup(await response.text(), 'html.parser')
+            avatar = html.find('a', class_='nav_avatar')
 
             if avatar:
                 json_data = {'success': True, 'steamid': avatar['href'].split('/')[2]}
             else:
+                # For some reason this notification can be displayed just after a new request
+                # to openid_url, So we must check for it again... not my fault, I think. (ref. l101)
+                if 'public Steam profile' in html.find('div', class_='notification--warning').text:
+                    raise PrivateProfile('Your profile must be public to use steamtrades.')
+
                 raise login.LoginError('Unable to log-in on steamtrades')
 
             json_data.update(data)

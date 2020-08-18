@@ -108,11 +108,17 @@ class SteamGifts(plugins.Plugin):
                     data[input_['name']] = input_['value']
 
         async with self.session.http.post(f'{self.openid_url}/login', headers=self.headers, data=data) as response:
-            avatar = bs4.BeautifulSoup(await response.text(), 'html.parser').find('a', class_='nav__avatar-outer-wrap')
+            html = bs4.BeautifulSoup(await response.text(), 'html.parser')
+            avatar = html.find('a', class_='nav__avatar-outer-wrap')
 
             if avatar:
                 json_data = {'success': True, 'nickname': avatar['href'].split('/')[2]}
             else:
+                # For some reason this notification can be displayed just after a new request
+                # to openid_url, So we must check for it again... not my fault, I think. (ref. l101)
+                if 'public Steam profile' in html.find('div', class_='notification--warning').text:
+                    raise PrivateProfile('Your profile must be public to use steamgifts.')
+
                 raise login.LoginError('Unable to log-in on steamgifts')
 
             json_data.update(data)
