@@ -22,7 +22,7 @@ from typing import NamedTuple, List, Dict, Any, Optional
 
 import aiohttp
 import bs4
-from stlib import webapi, plugins, login
+from stlib import plugins, login
 
 log = logging.getLogger(__name__)
 
@@ -56,6 +56,15 @@ class NoPointsError(Exception): pass
 class NoLevelError(Exception): pass
 
 
+class UserSuspended(Exception): pass
+
+
+class TooFast(Exception): pass
+
+
+class PrivateProfile(Exception): pass
+
+
 class SteamGifts(plugins.Plugin):
     def __init__(
             self,
@@ -84,7 +93,15 @@ class SteamGifts(plugins.Plugin):
 
             if not form:
                 if 'Suspensions' in html.find('a', class_='nav__button'):
-                    raise login.LoginError('Unable to login, user is suspended.')
+                    raise UserSuspended('Unable to login, user is suspended.')
+
+                if 'Please wait' in html.find('div', class_='notification--warning').text:
+                    raise TooFast('Wait 15 seconds before try again.')
+
+                if 'public Steam profile' in html.find('div', class_='notification--warning').text:
+                    raise PrivateProfile('Your profile must be public to use steamgifts.')
+
+                raise login.LoginError('Unable to log-in on steamgifts')
 
             for input_ in form.findAll('input'):
                 with contextlib.suppress(KeyError):
