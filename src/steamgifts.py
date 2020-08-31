@@ -56,13 +56,13 @@ class NoPointsError(Exception): pass
 class NoLevelError(Exception): pass
 
 
-class UserSuspended(Exception): pass
+class UserSuspended(login.LoginError): pass
 
 
-class TooFast(Exception): pass
+class TooFast(login.LoginError): pass
 
 
-class PrivateProfile(Exception): pass
+class PrivateProfile(login.LoginError): pass
 
 
 class SteamGifts(plugins.Plugin):
@@ -92,13 +92,16 @@ class SteamGifts(plugins.Plugin):
             data = {}
 
             if not form:
-                if 'Suspensions' in html.find('a', class_='nav__button'):
+                nav_button = html.find('a', class_='nav__button')
+                warning = html.find('div', class_='notification--warning')
+
+                if nav_button and 'Suspensions' in nav_button.text:
                     raise UserSuspended('Unable to login, user is suspended.')
 
-                if 'Please wait' in html.find('div', class_='notification--warning').text:
+                if warning and 'Please wait' in warning.text:
                     raise TooFast('Wait 15 seconds before try again.')
 
-                if 'public Steam profile' in html.find('div', class_='notification--warning').text:
+                if warning and 'public Steam profile' in warning.text:
                     raise PrivateProfile('Your profile must be public to use steamgifts.')
 
                 raise login.LoginError('Unable to log-in on steamgifts')
@@ -110,13 +113,18 @@ class SteamGifts(plugins.Plugin):
         async with self.session.http.post(f'{self.openid_url}/login', headers=self.headers, data=data) as response:
             html = bs4.BeautifulSoup(await response.text(), 'html.parser')
             avatar = html.find('a', class_='nav__avatar-outer-wrap')
+            nav_button = html.find('a', class_='nav__button')
+            warning = html.find('div', class_='notification--warning')
 
+            # For some reason notifications can be displayed before or after login
+            # So we must check for it again... not my fault. Don't remove that!
             if avatar:
+                if nav_button and 'Suspensions' in nav_button.text:
+                    raise UserSuspended('Unable to login, user is suspended.')
+
                 json_data = {'success': True, 'nickname': avatar['href'].split('/')[2]}
             else:
-                # For some reason this notification can be displayed just after a new request
-                # to openid_url, So we must check for it again... not my fault, I think. (ref. l101)
-                if 'public Steam profile' in html.find('div', class_='notification--warning').text:
+                if warning and 'public Steam profile' in warning.text:
                     raise PrivateProfile('Your profile must be public to use steamgifts.')
 
                 raise login.LoginError('Unable to log-in on steamgifts')
