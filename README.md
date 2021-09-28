@@ -34,19 +34,10 @@ How to Use Plugins
    ```
    from stlib import plugins
    
-   # Check registered plugins
-   print(manager.available_plugins)
-   
-   # Check if manager has a plugin called <plugin_name>
-   if manager.has_plugin(<plugin_name>):
+   # Check if has a plugin called <plugin_name>
+   if plugins.has_plugin(<plugin_name>):
        # Load a plugin by plugin name
-       plugin = plugins.load_plugin(<plugin_name>)
-   
-   # Check loaded plugins
-   print(manager.loaded_plugins)
-   
-   # unload a plugin by plugin name
-   plugins.unload_plugin(<plugin_name>)
-   ``` 
+       plugin = plugins.get_plugin(<plugin_name>)
+   ```
 
 
