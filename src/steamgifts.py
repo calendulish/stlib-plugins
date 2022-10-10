@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Lara Maia <dev@lara.click> 2015 ~ 2018
+# Lara Maia <dev@lara.click> 2015 ~ 2022
 #
 # The stlib is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -18,11 +18,10 @@
 
 import contextlib
 import logging
-from typing import NamedTuple, List, Dict, Any, Optional
+from typing import NamedTuple, List, Dict, Any
 
 import aiohttp
-import bs4
-from stlib import plugins, login
+from stlib import login, utils
 
 log = logging.getLogger(__name__)
 
@@ -65,7 +64,7 @@ class TooFast(login.LoginError): pass
 class PrivateProfile(login.LoginError): pass
 
 
-class SteamGifts(plugins.Plugin):
+class Main(utils.Base):
     def __init__(
             self,
             server: str = 'https://www.steamgifts.com',
@@ -74,9 +73,10 @@ class SteamGifts(plugins.Plugin):
             config_page: str = 'https://www.steamgifts.com/account/settings/giveaways',
             login_page: str = 'https://steamgifts.com/?login',
             openid_url: str = 'https://steamcommunity.com/openid',
-            headers: Optional[Dict[str, str]] = None,
+            *args: Any,
+            **kwargs: Any,
     ) -> None:
-        super().__init__(headers)
+        super().__init__(*args, **kwargs)
         self.server = server
         self.join_script = join_script
         self.search_page = search_page
@@ -86,57 +86,53 @@ class SteamGifts(plugins.Plugin):
         self.user_info = UserInfo(0, 0)
 
     async def do_login(self) -> Dict[str, Any]:
-        async with self.session.http.get(self.login_page, headers=self.headers) as response:
-            html = bs4.BeautifulSoup(await response.text(), 'html.parser')
-            form = html.find('form')
-            data = {}
+        html = await self.request_html(self.login_page)
+        form = html.find('form')
+        data = {}
 
-            if not form:
-                nav_button = html.find('a', class_='nav__button')
-                warning = html.find('div', class_='notification--warning')
-
-                if nav_button and 'Suspensions' in nav_button.text:
-                    raise UserSuspended('Unable to login, user is suspended.')
-
-                if warning and 'Please wait' in warning.text:
-                    raise TooFast('Wait 15 seconds before try again.')
-
-                if warning and 'public Steam profile' in warning.text:
-                    raise PrivateProfile('Your profile must be public to use steamgifts.')
-
-                raise login.LoginError('Unable to log-in on steamgifts')
-
-            for input_ in form.findAll('input'):
-                with contextlib.suppress(KeyError):
-                    data[input_['name']] = input_['value']
-
-        async with self.session.http.post(f'{self.openid_url}/login', headers=self.headers, data=data) as response:
-            html = bs4.BeautifulSoup(await response.text(), 'html.parser')
-            avatar = html.find('a', class_='nav__avatar-outer-wrap')
+        if not form:
             nav_button = html.find('a', class_='nav__button')
             warning = html.find('div', class_='notification--warning')
 
-            # For some reason notifications can be displayed before or after login
-            # So we must check for it again... not my fault. Don't remove that!
-            if avatar:
-                if nav_button and 'Suspensions' in nav_button.text:
-                    raise UserSuspended('Unable to login, user is suspended.')
+            if nav_button and 'Suspensions' in nav_button.text:
+                raise UserSuspended('Unable to login, user is suspended.')
 
-                json_data = {'success': True, 'nickname': avatar['href'].split('/')[2]}
-            else:
-                if warning and 'public Steam profile' in warning.text:
-                    raise PrivateProfile('Your profile must be public to use steamgifts.')
+            if warning and 'Please wait' in warning.text:
+                raise TooFast('Wait 15 seconds before try again.')
 
-                raise login.LoginError('Unable to log-in on steamgifts')
+            if warning and 'public Steam profile' in warning.text:
+                raise PrivateProfile('Your profile must be public to use steamgifts.')
 
-            json_data.update(data)
+            raise login.LoginError('Unable to log-in on steamgifts')
 
-            return json_data
+        for input_ in form.findAll('input'):
+            with contextlib.suppress(KeyError):
+                data[input_['name']] = input_['value']
+
+        html = await self.request_html(f'{self.openid_url}/login', data=data)
+        avatar = html.find('a', class_='nav__avatar-outer-wrap')
+        nav_button = html.find('a', class_='nav__button')
+        warning = html.find('div', class_='notification--warning')
+
+        # For some reason notifications can be displayed before or after login
+        # So we must check for it again... not my fault. Don't remove that!
+        if avatar:
+            if nav_button and 'Suspensions' in nav_button.text:
+                raise UserSuspended('Unable to login, user is suspended.')
+
+            json_data = {'success': True, 'nickname': avatar['href'].split('/')[2]}
+        else:
+            if warning and 'public Steam profile' in warning.text:
+                raise PrivateProfile('Your profile must be public to use steamgifts.')
+
+            raise login.LoginError('Unable to log-in on steamgifts')
+
+        json_data.update(data)
+
+        return json_data
 
     async def configure(self) -> None:
-        async with self.session.http.get(self.config_page, headers=self.headers) as response:
-            html = bs4.BeautifulSoup(await response.text(), 'html.parser')
-
+        html = await self.request_html(self.config_page)
         form = html.find('form')
         data = {}
 
@@ -153,7 +149,7 @@ class SteamGifts(plugins.Plugin):
 
         try:
             # if status != 200, session will raise an exception
-            await self.session.http.post(self.config_page, data=post_data, headers=self.headers)
+            await self.request(self.config_page, data=post_data)
         except aiohttp.ClientResponseError:
             raise ConfigureError from None
 
@@ -168,9 +164,7 @@ class SteamGifts(plugins.Plugin):
         else:
             search_query = f"?type={giveaway_type}"
 
-        async with self.session.http.get(f'{self.search_page}{search_query}', headers=self.headers) as response:
-            html = bs4.BeautifulSoup(await response.text(), 'html.parser')
-
+        html = await self.request_html(f'{self.search_page}{search_query}')
         user_points = int(html.find('span', class_="nav__points").text)
         user_level = int(''.join(filter(str.isdigit, html.find('span', class_=None).text)))
         self.user_info = UserInfo(user_points, user_level)
@@ -224,13 +218,11 @@ class SteamGifts(plugins.Plugin):
         if self.user_info.points < giveaway.points:
             raise NoPointsError(f"User don't have required points to join {giveaway.id}")
 
-        async with self.session.http.get(f'{self.server}{giveaway.query}', headers=self.headers) as response:
-            soup = bs4.BeautifulSoup(await response.text(), 'html.parser')
-
-        if not soup.find('a', class_='nav__avatar-outer-wrap'):
+        html = await self.request_html(f'{self.server}{giveaway.query}')
+        if not html.find('a', class_='nav__avatar-outer-wrap'):
             raise login.LoginError("User is not logged in")
 
-        sidebar = soup.find('div', class_='sidebar')
+        sidebar = html.find('div', class_='sidebar')
         form = sidebar.find('form')
 
         if not form:
@@ -251,14 +243,11 @@ class SteamGifts(plugins.Plugin):
             'code': data['code'],
         }
 
-        async with self.session.http.post(
-                f'{self.server}/{self.join_script}',
-                data=post_data,
-                headers=self.headers,
-        ) as response:
-            if 'success' in await response.text():
-                # noinspection PyProtectedMember
-                self.user_info = self.user_info._replace(points=self.user_info.points - giveaway.points)
-                return True
-            else:
-                return False
+        response = await self.request(f'{self.server}/{self.join_script}', data=post_data)
+
+        if 'success' in response.content:
+            # noinspection PyProtectedMember
+            self.user_info = self.user_info._replace(points=self.user_info.points - giveaway.points)
+            return True
+        else:
+            return False
