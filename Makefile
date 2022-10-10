@@ -18,7 +18,7 @@
 CC := /usr/bin/gcc
 PYTHON := /usr/bin/env python
 INSTALL := /usr/bin/install
-RM := /usr/bin/rm
+RM := /bin/rm
 PREFIX := /usr/local
 DATADIR := $(PREFIX)/share
 
