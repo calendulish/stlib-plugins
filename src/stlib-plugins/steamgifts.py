@@ -40,40 +40,48 @@ class GiveawayInfo(NamedTuple):
     id: str
 
 
-class ConfigureError(Exception): pass
+class ConfigureError(Exception):
+    pass
 
 
-class GiveawayEndedError(Exception): pass
+class GiveawayEndedError(Exception):
+    pass
 
 
-class NoGiveawaysError(Exception): pass
+class NoGiveawaysError(Exception):
+    pass
 
 
-class NoPointsError(Exception): pass
+class NoPointsError(Exception):
+    pass
 
 
-class NoLevelError(Exception): pass
+class NoLevelError(Exception):
+    pass
 
 
-class UserSuspended(login.LoginError): pass
+class UserSuspended(login.LoginError):
+    pass
 
 
-class TooFast(login.LoginError): pass
+class TooFast(login.LoginError):
+    pass
 
 
-class PrivateProfile(login.LoginError): pass
+class PrivateProfile(login.LoginError):
+    pass
 
 
 class Main(utils.Base):
     def __init__(
             self,
+            *args: Any,
             server: str = 'https://www.steamgifts.com',
             join_script: str = 'ajax.php',
             search_page: str = 'https://www.steamgifts.com/giveaways/search',
             config_page: str = 'https://www.steamgifts.com/account/settings/giveaways',
             login_page: str = 'https://steamgifts.com/?login',
             openid_url: str = 'https://steamcommunity.com/openid',
-            *args: Any,
             **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -249,5 +257,5 @@ class Main(utils.Base):
             # noinspection PyProtectedMember
             self.user_info = self.user_info._replace(points=self.user_info.points - giveaway.points)
             return True
-        else:
-            return False
+
+        return False

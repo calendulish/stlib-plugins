@@ -47,29 +47,34 @@ class TradeNotReadyError(Exception):
         self.title = trade_info.title
 
 
-class NoTradesError(Exception): pass
+class NoTradesError(Exception):
+    pass
 
 
-class UserLevelError(login.LoginError): pass
+class UserLevelError(login.LoginError):
+    pass
 
 
-class UserSuspended(login.LoginError): pass
+class UserSuspended(login.LoginError):
+    pass
 
 
-class TooFast(login.LoginError): pass
+class TooFast(login.LoginError):
+    pass
 
 
-class PrivateProfile(login.LoginError): pass
+class PrivateProfile(login.LoginError):
+    pass
 
 
 class Main(utils.Base):
     def __init__(
             self,
+            *args: Any,
             server: str = 'https://www.steamtrades.com',
             bump_script: str = 'ajax.php',
             login_page: str = 'https://steamtrades.com/?login',
             openid_url: str = 'https://steamcommunity.com/openid',
-            *args: Any,
             **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -163,10 +168,6 @@ class Main(utils.Base):
             error = json.loads(response.content)['popup_heading_h2'][0]
             minutes_left = int(error.split(' ')[3])
             raise TradeNotReadyError(trade_info, minutes_left, f"Trade {trade_info.id} is not ready")
-        else:
-            response = await self.request(f'{self.server}/trades')
 
-            if trade_info.id in response.content:
-                return True
-            else:
-                return False
+        response = await self.request(f'{self.server}/trades')
+        return trade_info.id in response.content
