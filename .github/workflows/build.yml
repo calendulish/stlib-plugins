@@ -1,0 +1,77 @@
+name: Build
+on: [push, workflow_dispatch]
+
+jobs:
+  delete-old-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: kolpav/purge-artifacts-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          expire-in: 0
+  build:
+    if: ${{ always() }}
+    needs: delete-old-artifacts
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10']
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install build
+      - run: python -m build
+      - uses: actions/upload-artifact@v3
+        with:
+          name: any
+          path: |
+            dist/
+          if-no-files-found: error
+          retention-days: 90
+  deploy:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+      - uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: |
+            any/dist/*.whl
+            any/dist/*.tar.gz
+  pypi-upload:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '3.9', '3.10' ]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages_dir: any/dist/
+          verbose: true
+          print_hash: true
+  generate-badges:
+    if: ${{ always() }}
+    needs: [build]
+    runs-on: ubuntu-latest
+    env:
+      badge-color: ${{ needs.build.result == 'success' && 'green' || 'red' }}
+    steps:
+      - uses: RubbaBoy/BYOB@v1.3.0
+        with:
+          NAME: stlib-plugins-build
+          LABEL: 'Build'
+          STATUS: ${{ needs.build.result }}
+          COLOR: ${{ env.badge-color }}
+          GITHUB_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
+          REPOSITORY: ShyPixie/.github
+          ACTOR: ShyPixie
