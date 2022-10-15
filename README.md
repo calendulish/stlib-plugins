@@ -7,51 +7,44 @@ Official stlib plugins
 
 Current plugins:
 
- - SteamTrades
- - SteamGifts
+- SteamTrades
+- SteamGifts
 
 How to Create Plugins
 =====================
 
-You can use stlib-plugin as an example.
-
-1) Create all files needed by your plugin as a common python module, and you're done.
+Just create a new class by extending the class `utils.Base` from `stlib`.  
+Nothing special here, you can use stlib-plugins as an example.
 
 How to Use Plugins
 ==================
 
-```
+```python
 from stlib import plugins
 
-# Check if has a plugin called <plugin_name>
+# You can modify the default search path prior the plugin manager initialization
+# Must be called before use any method from 'plugins' module
+# Warning: Your custom search paths will take precedence over default search paths
+plugins.add_search_paths(<mypath>, <anotherpath>, ...)
+
+# You can get a list of all available plugins
+all_plugins = plugins.get_available_plugins()
+
+# You can check if there has a plugin called <plugin_name>
 if plugins.has_plugin(<plugin_name>):
-   # Load a plugin by plugin name
+   # So you can load the plugin by plugin name
    plugin = plugins.get_plugin(<plugin_name>)
 ```
 
 Default search paths are:
 
-#####For Windows:
-```
+```python
+# For Windows:
 <current_directory>\\plugins  
 %LOCALAPPDATA%\\stlib\\plugins
-``` 
 
-#####For Linux:
-```
+# For Linux:
 <current_directory>/plugins  
 /usr/share/stlib/plugins  
 $HOME/.local/share/stlib/plugins
-``` 
-
-You can modify the default search path prior the plugin manager initialization:
-
 ```
-from stlib import plugins
-
-# Must be called before use any method from 'plugins' module
-plugins.add_search_paths(<mypath>, <anotherpath>, ...)
-...
-```
-
-Warning: Your custom search paths will take precedence over default search paths
