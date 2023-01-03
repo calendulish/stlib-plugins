@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Lara Maia <dev@lara.monster> 2015 ~ 2022
+# Lara Maia <dev@lara.monster> 2015 ~ 2023
 #
 # The stlib-plugins is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -40,7 +40,7 @@ except FileNotFoundError:
 
 setup(
     name='stlib-plugins',
-    version='1.1',
+    version='1.1.1',
     description="Official stlib plugins",
     long_description=long_description,
     long_description_content_type='text/markdown',
