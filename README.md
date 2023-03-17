@@ -1,7 +1,7 @@
 Official stlib plugins
 ======================
 
-[![build status](https://badges.lara.monster/ShyPixie/.github/stlib-plugins-build)](https://github.com/ShyPixie/stlib-plugins/actions/workflows/build.yml)
+[![build status](https://badges.lara.monster/calendulish/.github/stlib-plugins-build)](https://github.com/calendulish/stlib-plugins/actions/workflows/build.yml)
 [![Quality](https://api.codiga.io/project/34835/score/svg)](https://app.codiga.io/hub/project/34835/stlib-plugins)
 [![GitHub license](https://img.shields.io/badge/license-GPLv3-brightgreen.svg?style=flat)](https://www.gnu.org/licenses/gpl-3.0.html)
 

@@ -40,13 +40,13 @@ except FileNotFoundError:
 
 setup(
     name='stlib-plugins',
-    version='1.1.1',
+    version='1.1.2',
     description="Official stlib plugins",
     long_description=long_description,
     long_description_content_type='text/markdown',
     author='Lara Maia',
     author_email='dev@lara.monster',
-    url='https://github.com/ShyPixie/stlib-plugins',
+    url='https://github.com/calendulish/stlib-plugins',
     license='GPLv3',
     classifiers=classifiers,
     keywords='steam-tools steam stlib valve',
