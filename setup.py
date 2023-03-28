@@ -40,7 +40,7 @@ except FileNotFoundError:
 
 setup(
     name='stlib-plugins',
-    version='1.1.2',
+    version='1.2',
     description="Official stlib plugins",
     long_description=long_description,
     long_description_content_type='text/markdown',
