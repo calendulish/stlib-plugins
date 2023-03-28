@@ -18,7 +18,7 @@
 
 import contextlib
 import logging
-from typing import NamedTuple, List, Dict, Any
+from typing import NamedTuple, List, Dict, Any, Tuple
 
 import aiohttp
 from stlib import login, utils
@@ -175,13 +175,32 @@ class Main(utils.Base):
     async def get_giveaways(
             self,
             _type: str,
-            return_unavailable: bool = False,
+            metascore_filter: Tuple[int, int] = (0, 100),
+            level_filter: Tuple[int, int] = (0, 100),
+            entries_filter: Tuple[int, int] = (0, 999999),
+            points_filter: Tuple[int, int] = (0, 50),
+            copies_filter: Tuple[int, int] = (0, 999999),
             pinned_giveaways: bool = True,
+            return_unavailable: bool = False,
     ) -> List[GiveawayInfo]:
         if _type not in giveaway_types.keys():
             raise ValueError("type is invalid")
 
-        html = await self.request_html(f'{self.search_page}', params=giveaway_types[_type])
+        params = {
+            **giveaway_types[_type],
+            'metascore_min': metascore_filter[0],
+            'metascore_max': metascore_filter[1],
+            'level_min': level_filter[0],
+            'level_max': level_filter[1],
+            'entry_min': entries_filter[0],
+            'entry_max': entries_filter[1],
+            'copy_min': copies_filter[0],
+            'copy_max': copies_filter[1],
+            'point_min': points_filter[0],
+            'point_max': points_filter[1],
+        }
+
+        html = await self.request_html(f'{self.search_page}', params=params)
         user_points = int(html.find('span', class_="nav__points").text)
         user_level = int(''.join(filter(str.isdigit, html.find('span', class_=None).text)))
         self.user_info = UserInfo(user_points, user_level)
