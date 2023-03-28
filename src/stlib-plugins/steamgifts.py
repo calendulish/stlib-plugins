@@ -40,6 +40,17 @@ class GiveawayInfo(NamedTuple):
     id: str
 
 
+giveaway_types: Dict[str, Dict[str, Any]] = {
+    'main': {},
+    'new': {'type': 'new'},
+    'recommended': {'type': 'recommended'},
+    'wishlist': {'type': 'wishlist'},
+    'group': {'type': 'group'},
+    'dlc': {'dlc': 'true'},
+    'region_restricted': {'region_restricted': 'true'}
+}
+
+
 class ConfigureError(Exception):
     pass
 
@@ -163,16 +174,14 @@ class Main(utils.Base):
 
     async def get_giveaways(
             self,
-            giveaway_type: str,
+            _type: str,
             return_unavailable: bool = False,
             pinned_giveaways: bool = True,
     ) -> List[GiveawayInfo]:
-        if giveaway_type == "main":
-            search_query = ''
-        else:
-            search_query = f"?type={giveaway_type}"
+        if _type not in giveaway_types.keys():
+            raise ValueError("type is invalid")
 
-        html = await self.request_html(f'{self.search_page}{search_query}')
+        html = await self.request_html(f'{self.search_page}', params=giveaway_types[_type])
         user_points = int(html.find('span', class_="nav__points").text)
         user_level = int(''.join(filter(str.isdigit, html.find('span', class_=None).text)))
         self.user_info = UserInfo(user_points, user_level)
