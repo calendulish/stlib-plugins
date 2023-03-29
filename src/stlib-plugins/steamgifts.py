@@ -174,20 +174,20 @@ class Main(utils.Base):
 
     async def get_giveaways(
             self,
-            _type: str,
+            type_: str,
             metascore_filter: Tuple[int, int] = (0, 100),
             level_filter: Tuple[int, int] = (0, 100),
             entries_filter: Tuple[int, int] = (0, 999999),
             points_filter: Tuple[int, int] = (0, 50),
-            copies_filter: Tuple[int, int] = (0, 999999),
+            copies_filter: Tuple[int, int] = (1, 999999),
             pinned_giveaways: bool = True,
             return_unavailable: bool = False,
     ) -> List[GiveawayInfo]:
-        if _type not in giveaway_types.keys():
+        if type_ not in giveaway_types.keys():
             raise ValueError("type is invalid")
 
         params = {
-            **giveaway_types[_type],
+            **giveaway_types[type_],
             'metascore_min': metascore_filter[0],
             'metascore_max': metascore_filter[1],
             'level_min': level_filter[0],
