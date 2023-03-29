@@ -188,8 +188,8 @@ class Main(utils.Base):
 
         params = {
             **giveaway_types[type_],
-            'metascore_min': metascore_filter[0],
-            'metascore_max': metascore_filter[1],
+            'metascore_min': metascore_filter[0] if metascore_filter[0] > 0 else -1,
+            'metascore_max': metascore_filter[1] if metascore_filter[1] < 100 else -1,
             'level_min': level_filter[0],
             'level_max': level_filter[1],
             'entry_min': entries_filter[0],
@@ -244,6 +244,9 @@ class Main(utils.Base):
                 log.warning("Ignoring %s because user don't have all the requirements to join.", id_)
             else:
                 giveaways.append(GiveawayInfo(name, copies, points, level, query, id_))
+
+        if not giveaways and metascore_filter[0] > 0 and metascore_filter[1] < 100:
+            log.warning("No giveaways found. metascore filtering is enabled.")
 
         return giveaways
 
