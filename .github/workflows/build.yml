@@ -73,5 +73,5 @@ jobs:
           STATUS: ${{ needs.build.result }}
           COLOR: ${{ env.badge-color }}
           GITHUB_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
-          REPOSITORY: ShyPixie/.github
-          ACTOR: ShyPixie
+          REPOSITORY: calendulish/.github
+          ACTOR: calendulish
