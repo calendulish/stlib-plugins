@@ -220,7 +220,7 @@ class Main(utils.Base):
                 continue
 
             temp_head = giveaway.find('a', class_='giveaway__heading__name')
-            name = temp_head.text[:22] + '...'
+            name = f'{temp_head.text[:22]}...'
             query = temp_head['href']
             id_ = temp_head['href'].split('/')[2]
 
@@ -229,11 +229,9 @@ class Main(utils.Base):
             if 'Copies' in temp_head.text:
                 copies = int(''.join(filter(str.isdigit, temp_head.text)))
                 temp_head = temp_head.findNext('span', class_='giveaway__heading__thin')
-                points = int(''.join(filter(str.isdigit, temp_head.text)))
             else:
                 copies = 1
-                points = int(''.join(filter(str.isdigit, temp_head.text)))
-
+            points = int(''.join(filter(str.isdigit, temp_head.text)))
             try:
                 level_column = giveaway.find('div', class_='giveaway__column--contributor-level')
                 level = int(''.join(filter(str.isdigit, level_column.text)))
