@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "stlib-plugins"
-version = "1.2.2"
+version = "1.2.3"
 description = "Official stlib plugins"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -22,10 +22,11 @@ classifiers = [
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Typing :: Typed"
 ]
 
-dependencies = ["stlib~=1.3.0"]
+dependencies = ["stlib~=2.0"]
 
 [project.urls]
 homepage = "https://github.com/calendulish/stlib-plugins"
