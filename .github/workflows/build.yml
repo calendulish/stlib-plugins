@@ -4,6 +4,8 @@ on: [push, workflow_dispatch]
 jobs:
   delete-old-artifacts:
     if: github.event_name != 'pull_request'
+    permissions:
+      actions: write
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
