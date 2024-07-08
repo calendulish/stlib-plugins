@@ -172,6 +172,16 @@ class Main(utils.Base):
         except aiohttp.ClientResponseError:
             raise ConfigureError from None
 
+    async def update_user_info(self) -> None:
+        html = await self.request_html(f'{self.server}')
+
+        if not (nav := html.find('span', class_="nav__points")):
+            raise login.LoginError("User is not logged in")
+
+        user_points = int(nav.text)
+        user_level = int(''.join(filter(str.isdigit, html.find('span', class_=None).text)))
+        self.user_info = UserInfo(user_points, user_level)
+
     async def get_giveaways(
             self,
             type_: str,
@@ -201,10 +211,6 @@ class Main(utils.Base):
         }
 
         html = await self.request_html(f'{self.search_page}', params=params)
-        user_points = int(html.find('span', class_="nav__points").text)
-        user_level = int(''.join(filter(str.isdigit, html.find('span', class_=None).text)))
-        self.user_info = UserInfo(user_points, user_level)
-
         container = html.find('div', class_='widget-container')
         head = container.find('div', class_='page__heading')
         giveaways_raw = head.findAllNext('div', class_='giveaway__row-outer-wrap')
