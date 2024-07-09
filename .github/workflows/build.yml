@@ -13,7 +13,7 @@ jobs:
         with:
           egress-policy: audit
 
-      - uses: calendulish/purge-artifacts-action@7f45b429560cfdf0ae26758e1b069b806489e094 # v1.0
+      - uses: calendulish/purge-artifacts-action@2e8a85a677ea67a31edfe3e348d9379ad7e26988 # v2.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           expire-in: 0
@@ -56,7 +56,7 @@ jobs:
 
       - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
       - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-      - uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
+      - uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0 # v2.0.6
         with:
           draft: true
           files: |
@@ -76,7 +76,7 @@ jobs:
 
       - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
       - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-      - uses: pypa/gh-action-pypi-publish@b7f401de30cb6434a1e19f805ff006643653240e # release/v1
+      - uses: pypa/gh-action-pypi-publish@ec4db0b4ddc65acdf4bff5fa45ac92d78b56bdf0 # v1.9.0
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           packages_dir: linux_${{ matrix.python-version }}/dist/
