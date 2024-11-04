@@ -172,7 +172,7 @@ class Main(utils.Base):
         except aiohttp.ClientResponseError:
             raise ConfigureError from None
 
-    async def update_user_info(self) -> None:
+    async def update_user_info(self) -> UserInfo:
         html = await self.request_html(f'{self.server}')
 
         if not (nav := html.find('span', class_="nav__points")):
@@ -180,7 +180,7 @@ class Main(utils.Base):
 
         user_points = int(nav.text)
         user_level = int(''.join(filter(str.isdigit, html.find('span', class_=None).text)))
-        self.user_info = UserInfo(user_points, user_level)
+        return UserInfo(user_points, user_level)
 
     async def get_giveaways(
             self,
@@ -211,6 +211,7 @@ class Main(utils.Base):
         }
 
         html = await self.request_html(f'{self.search_page}', params=params)
+        self.user_info = await self.update_user_info()
         container = html.find('div', class_='widget-container')
         head = container.find('div', class_='page__heading')
         giveaways_raw = head.findAllNext('div', class_='giveaway__row-outer-wrap')
@@ -244,7 +245,7 @@ class Main(utils.Base):
             except AttributeError:
                 level = 0
 
-            if not return_unavailable and (user_level < level or user_points < points):
+            if not return_unavailable and (self.user_info.level < level or self.user_info.points < points):
                 log.warning("Ignoring %s because user don't have all the requirements to join.", id_)
             else:
                 giveaways.append(GiveawayInfo(name, copies, points, level, query, id_))
@@ -255,6 +256,8 @@ class Main(utils.Base):
         return giveaways
 
     async def join(self, giveaway: GiveawayInfo) -> bool:
+        self.user_info = await self.update_user_info()
+
         if self.user_info.level < giveaway.level:
             raise NoLevelError(f"User don't have required level to join {giveaway.id}")
 
